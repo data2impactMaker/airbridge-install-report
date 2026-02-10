@@ -117,6 +117,21 @@ tbody tr.total-row td {
   text-align: center; color: #4b5563; font-size: 12px;
   padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 20px;
 }
+.tip {
+  position: relative; cursor: help;
+  border-bottom: 1px dotted rgba(165,180,252,0.4);
+}
+.tip .tip-box {
+  display: none; position: absolute; left: 0; bottom: calc(100% + 8px);
+  background: #1e1e2e; border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 8px; padding: 10px 14px; width: 280px; z-index: 100;
+  font-size: 12px; font-weight: 400; color: #d1d5db; line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5); pointer-events: none;
+}
+.tip .tip-box .tip-title {
+  font-weight: 600; color: #a5b4fc; margin-bottom: 4px; font-size: 12px;
+}
+.tip:hover .tip-box { display: block; }
 @media (max-width: 900px) {
   .kpi-row { grid-template-columns: repeat(2,1fr); }
   .chart-row { grid-template-columns: 1fr; }
@@ -377,6 +392,35 @@ const campMonthly = [
   {ym:'2026-01',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:175},
 ];
 
+// ========== CHANNEL DESCRIPTIONS ==========
+var chDesc = {
+  'unattributed': '\uC5B4\uB5A4 \uCC44\uB110/\uCE60\uD398\uC778\uC5D0\uB3C4 \uADC0\uC18D\uB418\uC9C0 \uC54A\uC740 \uC790\uC5F0 \uC720\uC785 \uC124\uCE58. \uC571\uC2A4\uD1A0\uC5B4 \uAC80\uC0C9, \uC9C1\uC811 URL \uC785\uB825 \uB4F1 \uCD94\uC801 \uBD88\uAC00 \uD2B8\uB798\uD53D.',
+  'owned': '\uC790\uC0AC \uCC44\uB110(\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5 \uBAA8\uBC14\uC77C\uC6F9)\uC5D0\uC11C \uC571 \uC124\uCE58 \uC720\uB3C4. \uB300\uBD80\uBD84 parking_web_all_activation \uCE84\uD398\uC778. \uAD11\uACE0\uBE44 \uC5C6\uB294 \uC624\uAC00\uB2C9 \uC804\uD658.',
+  '$$default$$': 'Airbridge SDK\uAC00 \uC218\uC9D1\uD588\uC73C\uB098 \uC5B4\uD2B8\uB9AC\uBDF0\uC158 \uB9E4\uCE6D \uC2E4\uD328\uD55C \uD3F4\uBC31 \uCC44\uB110. \uC2E4\uC9C8\uC801\uC73C\uB85C unattributed\uC5D0 \uAC00\uAE4C\uC6C0.',
+  'dev': '\uAC1C\uBC1C/\uD14C\uC2A4\uD2B8 \uD658\uACBD\uC5D0\uC11C \uBC1C\uC0DD\uD55C \uC774\uBCA4\uD2B8. QA \uD14C\uC2A4\uD2B8, \uB0B4\uBD80 \uB514\uBC84\uAE45 \uC778\uC2A4\uD1A8. \uC2E4 \uC0AC\uC6A9\uC790 \uC544\uB2D0 \uAC00\uB2A5\uC131 \uB192\uC74C.',
+  'naver.searchad': '\uB124\uC774\uBC84 \uAC80\uC0C9\uAD11\uACE0(SA). \uBE0C\uB79C\uB4DC \uAC80\uC0C9, \uC9C0\uC5ED/\uC8FC\uCC28 \uD0A4\uC6CC\uB4DC \uCE84\uD398\uC778 \uD3EC\uD568. \uC720\uB8CC \uD37C\uD3EC\uBA3C\uC2A4 \uCC44\uB110.',
+  'viral': '\uBC14\uC774\uB7F4/\uCF58\uD150\uCE20 \uB9C8\uCF00\uD305. \uC8FC\uB85C \uB124\uC774\uBC84 \uBE14\uB85C\uADF8 \uD3EC\uC2A4\uD305(parking_naver_blog) \uD1B5\uD55C \uC720\uC785.',
+  'restricted': 'Airbridge \uC815\uCC45\uC0C1 \uCC44\uB110\uBA85\uC774 \uC81C\uD55C\uB41C \uD2B8\uB798\uD53D. \uC0AC\uC6A9\uC790 \uD504\uB77C\uC774\uBC84\uC2DC \uB4F1\uC758 \uC774\uC720\uB85C \uCC44\uB110 \uC815\uBCF4 \uBE44\uACF5\uAC1C.',
+  'naver_bsa': '\uB124\uC774\uBC84 \uBE0C\uB79C\uB4DC \uAC80\uC0C9\uAD11\uACE0(BSA). Mobile_v.3.3 \uB4F1 \uBE0C\uB79C\uB4DC \uD0A4\uC6CC\uB4DC \uC804\uC6A9 \uCE84\uD398\uC778.',
+  'alliance': '\uC81C\uD734 \uCC44\uB110. \uD604\uB300\uCE74\uB4DC, \uC0BC\uC131\uD654\uC7AC, GSM\uBE44\uC988 \uB4F1 \uD30C\uD2B8\uB108\uC0AC \uC5F0\uACC4 \uCE84\uD398\uC778.',
+  'danggeun_market': '\uB2F9\uADFC\uB9C8\uCF13 \uAD11\uACE0 \uCC44\uB110. parking_danngn_traffic_all \uCE84\uD398\uC778\uC73C\uB85C \uC9D1\uD589.',
+  'socar': '\uC3D8\uCE74 \uC81C\uD734 \uCC44\uB110. parking_sharing_all_promo \uCE84\uD398\uC778. \uC8FC\uCC28 \uACF5\uC720 \uD504\uB85C\uBAA8\uC158.',
+  'public': '\uC624\uD504\uB77C\uC778 QR\uCF54\uB4DC \uAE30\uBC18 \uC124\uCE58. \uACF5\uACF5\uC7A5\uC18C \uB4F1\uC5D0 \uBE44\uCE58\uB41C QR \uD1B5\uD55C \uC571 \uB2E4\uC6B4\uB85C\uB4DC.',
+  'naver_sa': '\uB124\uC774\uBC84 \uAC80\uC0C9\uAD11\uACE0(\uACF5\uD56D \uD0A4\uC6CC\uB4DC). A.5.\uC77C\uBC18_\uACF5\uD56D_mo \uCE84\uD398\uC778 \uC804\uC6A9.',
+  'kakao': '\uCE74\uCE74\uC624 \uAD11\uACE0 \uCC44\uB110. moduparking_biz \uC571 \uAC00\uC785 \uC720\uB3C4 \uCE84\uD398\uC778(AOS/iOS).',
+  'crm_lms': 'CRM LMS(\uBB38\uC790) \uBC1C\uC1A1 \uCC44\uB110. parking_lms_all_activation \uCE84\uD398\uC778. 2025-09\uC5D0\uB9CC \uC9D1\uD589.',
+  'offline': '\uC624\uD504\uB77C\uC778 QR\uCF54\uB4DC \uCC44\uB110. \uC8FC\uCC28\uC7A5 \uD604\uC7A5 QR \uD1B5\uD55C \uC571 \uC124\uCE58 \uC720\uB3C4.',
+  'Unattributed': '\uC5B4\uD2B8\uB9AC\uBDF0\uC158 \uBD88\uAC00 \uD2B8\uB798\uD53D. \uC571\uC2A4\uD1A0\uC5B4 \uC9C1\uC811 \uAC80\uC0C9, URL \uC785\uB825 \uB4F1 \uCD94\uC801\uD560 \uC218 \uC5C6\uB294 \uC790\uC5F0 \uC720\uC785.',
+  'Custom Channel': 'Airbridge\uC5D0\uC11C \uC9C1\uC811 \uC0DD\uC131\uD55C \uCEE4\uC2A4\uD140 \uCC44\uB110. owned, dev, alliance, viral \uB4F1 \uD3EC\uD568.',
+  'Integrated Channel': 'Airbridge \uC5F0\uB3D9 \uAD11\uACE0 \uCC44\uB110. \uB124\uC774\uBC84 \uAC80\uC0C9\uAD11\uACE0(naver.searchad) \uB4F1 \uC720\uB8CC \uAD11\uACE0 \uD50C\uB7AB\uD3FC \uC5F0\uB3D9.',
+};
+
+function chTip(name) {
+  var d = chDesc[name];
+  if (!d) return name;
+  return '<span class="tip">'+name+'<span class="tip-box"><div class="tip-title">'+name+'</div>'+d+'</span></span>';
+}
+
 // ========== UTILS ==========
 function fmt(n) { return n.toLocaleString('ko-KR'); }
 function pct(n, total) { return (n/total*100).toFixed(1); }
@@ -404,7 +448,7 @@ function switchTab(section, tab) {
   channelOverall.forEach(function(r,i){
     var p=pct(r.cnt,TOTAL), barW=(r.cnt/maxCnt*100).toFixed(1);
     html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td>'
-      +'<td class="name">'+r.ch+'</td><td class="right">'+fmt(r.cnt)+'</td>'
+      +'<td class="name">'+chTip(r.ch)+'</td><td class="right">'+fmt(r.cnt)+'</td>'
       +'<td class="right">'+pctBadge(p)+'</td>'
       +'<td class="right data-bar-cell"><div class="data-bar" style="width:'+barW+'%;background:#818cf8"></div><span class="data-bar-text">'+fmt(r.cnt)+'</span></td>'
       +'<td class="right">'+fmt(r.uu)+'</td></tr>';
@@ -420,7 +464,7 @@ function switchTab(section, tab) {
   MONTHS.forEach(function(ym){
     var rows=channelMonthly[ym]||[], mt=rows.reduce(function(s,r){return s+r.cnt},0);
     rows.forEach(function(r,i){
-      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.ch+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,mt))+'</td></tr>';
+      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+chTip(r.ch)+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,mt))+'</td></tr>';
     });
     html+='<tr class="total-row"><td></td><td>\uC18C\uACC4</td><td class="right">'+fmt(mt)+'</td><td class="right">100.0%</td></tr>';
   });
@@ -430,7 +474,7 @@ function switchTab(section, tab) {
 (function(){
   var html='';
   typeOverall.forEach(function(r,i){
-    html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td><td class="name">'+r.tp+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,TOTAL))+'</td><td class="right">'+fmt(r.uu)+'</td></tr>';
+    html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td><td class="name">'+chTip(r.tp)+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,TOTAL))+'</td><td class="right">'+fmt(r.uu)+'</td></tr>';
   });
   var tc=typeOverall.reduce(function(s,r){return s+r.cnt},0);
   var tu=typeOverall.reduce(function(s,r){return s+r.uu},0);
@@ -443,7 +487,7 @@ function switchTab(section, tab) {
   MONTHS.forEach(function(ym){
     var rows=typeMonthly[ym]||[], mt=rows.reduce(function(s,r){return s+r.cnt},0);
     rows.forEach(function(r,i){
-      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.tp+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,mt))+'</td></tr>';
+      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+chTip(r.tp)+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,mt))+'</td></tr>';
     });
     html+='<tr class="total-row"><td></td><td>\uC18C\uACC4</td><td class="right">'+fmt(mt)+'</td><td class="right">100.0%</td></tr>';
   });
@@ -455,7 +499,7 @@ function switchTab(section, tab) {
   campOverall.forEach(function(r,i){
     var p=pct(r.cnt,TOTAL), barW=(r.cnt/maxCnt*100).toFixed(1);
     html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td>'
-      +'<td class="name">'+r.camp+'</td><td class="name">'+r.ch+'</td>'
+      +'<td class="name">'+r.camp+'</td><td class="name">'+chTip(r.ch)+'</td>'
       +'<td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(p)+'</td>'
       +'<td class="right data-bar-cell"><div class="data-bar" style="width:'+barW+'%;background:#34d399"></div><span class="data-bar-text">'+fmt(r.cnt)+'</span></td>'
       +'<td class="right">'+fmt(r.uu)+'</td></tr>';
@@ -471,7 +515,7 @@ function switchTab(section, tab) {
   MONTHS.forEach(function(ym){
     var rows=campMonthly.filter(function(r){return r.ym===ym});
     rows.forEach(function(r,i){
-      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.camp+'</td><td class="name">'+r.ch+'</td><td class="right">'+fmt(r.cnt)+'</td></tr>';
+      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.camp+'</td><td class="name">'+chTip(r.ch)+'</td><td class="right">'+fmt(r.cnt)+'</td></tr>';
     });
     var mt=rows.reduce(function(s,r){return s+r.cnt},0);
     html+='<tr class="total-row"><td></td><td>\uC18C\uACC4</td><td></td><td class="right">'+fmt(mt)+'</td></tr>';
