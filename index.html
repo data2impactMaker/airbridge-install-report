@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airbridge Install Analysis Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f0f13;
+  color: #e0e0e0;
+  line-height: 1.6;
+  padding: 24px;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+.header {
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.10));
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 16px;
+  padding: 32px 40px;
+  margin-bottom: 28px;
+  backdrop-filter: blur(20px);
+}
+.header h1 {
+  font-size: 28px; font-weight: 700;
+  background: linear-gradient(135deg, #818cf8, #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.header .subtitle { color: #9ca3af; font-size: 14px; }
+.kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+.kpi-card {
+  background: rgba(30,30,40,0.7); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 20px 24px; backdrop-filter: blur(10px);
+}
+.kpi-card .label { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.kpi-card .value { font-size: 28px; font-weight: 700; color: #f3f4f6; }
+.kpi-card .sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
+.section {
+  background: rgba(30,30,40,0.5); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 28px; margin-bottom: 24px; backdrop-filter: blur(10px);
+}
+.section-title {
+  font-size: 18px; font-weight: 600; color: #f3f4f6; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title .icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.section-title .icon.purple { background: rgba(168,85,247,0.2); }
+.section-title .icon.blue { background: rgba(59,130,246,0.2); }
+.section-title .icon.green { background: rgba(34,197,94,0.2); }
+.tab-buttons {
+  display: flex; gap: 4px; background: rgba(20,20,30,0.6);
+  border-radius: 10px; padding: 4px; width: fit-content; margin-bottom: 20px;
+}
+.tab-btn {
+  padding: 8px 20px; border: none; background: transparent; color: #9ca3af;
+  font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer;
+  transition: all 0.2s; font-family: inherit;
+}
+.tab-btn.active { background: rgba(99,102,241,0.25); color: #a5b4fc; }
+.tab-btn:hover:not(.active) { color: #d1d5db; background: rgba(255,255,255,0.04); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: rgba(99,102,241,0.08); color: #a5b4fc; font-weight: 600;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: sticky; top: 0;
+}
+thead th.right { text-align: right; }
+tbody td { padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #d1d5db; }
+tbody td.right { text-align: right; font-variant-numeric: tabular-nums; }
+tbody td.name { font-weight: 500; color: #e5e7eb; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tbody tr:hover { background: rgba(99,102,241,0.04); }
+tbody tr:last-child td { border-bottom: none; }
+.rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px; font-size: 11px; font-weight: 700;
+}
+.rank.gold { background: rgba(234,179,8,0.2); color: #fbbf24; }
+.rank.silver { background: rgba(156,163,175,0.2); color: #9ca3af; }
+.rank.bronze { background: rgba(180,83,9,0.2); color: #d97706; }
+.rank.normal { background: rgba(75,85,99,0.15); color: #6b7280; }
+.data-bar-cell { position: relative; }
+.data-bar { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 22px; border-radius: 3px; opacity: 0.15; }
+.data-bar-text { position: relative; z-index: 1; }
+.pct-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.pct-high { background: rgba(34,197,94,0.15); color: #4ade80; }
+.pct-mid { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.pct-low { background: rgba(156,163,175,0.15); color: #9ca3af; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.chart-box {
+  background: rgba(20,20,30,0.5); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 12px; padding: 20px;
+}
+.chart-box h3 { font-size: 14px; font-weight: 600; color: #d1d5db; margin-bottom: 16px; }
+.chart-box canvas { width: 100% !important; }
+.table-scroll {
+  max-height: 500px; overflow-y: auto; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.table-scroll::-webkit-scrollbar { width: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+.table-scroll::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 3px; }
+tbody tr.total-row td {
+  font-weight: 700; color: #a5b4fc;
+  border-top: 2px solid rgba(99,102,241,0.2); background: rgba(99,102,241,0.04);
+}
+.footer {
+  text-align: center; color: #4b5563; font-size: 12px;
+  padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 20px;
+}
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(2,1fr); }
+  .chart-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>Airbridge Install (App) Analysis</h1>
+  <div class="subtitle">moduparking.airbridge.app_PP &middot; eventCategory = 'Install (App)' &middot; 2025-08 ~ 2026-01</div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="label">Total Installs</div>
+    <div class="value">1,267,809</div>
+    <div class="sub">2025-08 ~ 2026-01 누적</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Unique Users</div>
+    <div class="value">41,252</div>
+    <div class="sub">userSeq 기준</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Channels</div>
+    <div class="value">16</div>
+    <div class="sub">활성 채널 수</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Campaigns</div>
+    <div class="value">34</div>
+    <div class="sub">캠페인 x 채널 조합</div>
+  </div>
+</div>
+
+<!-- SECTION 1: Channel -->
+<div class="section">
+  <div class="section-title"><div class="icon purple">&#x1F4CA;</div>채널별 인스톨 현황</div>
+  <div class="tab-buttons" id="channelTabs">
+    <button class="tab-btn active" onclick="switchTab('channel','overall')">전체 기간</button>
+    <button class="tab-btn" onclick="switchTab('channel','monthly')">월별 추이</button>
+  </div>
+  <div class="tab-content active" id="channel-overall">
+    <div class="chart-row">
+      <div class="chart-box"><h3>채널별 인스톨 비중 (Attributed Only)</h3><canvas id="chartChannelPie" height="280"></canvas></div>
+      <div class="chart-box"><h3>채널별 인스톨 수 (Top 10)</h3><canvas id="chartChannelBar" height="280"></canvas></div>
+    </div>
+    <div class="table-scroll"><table><thead><tr>
+      <th style="width:40px">#</th><th>Channel</th><th class="right">인스톨 수</th>
+      <th class="right">비중</th><th class="right" style="width:120px">바</th><th class="right">Unique Users</th>
+    </tr></thead><tbody id="channelOverallBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="channel-monthly">
+    <div class="chart-box" style="margin-bottom:20px"><h3>채널별 월간 인스톨 추이 (Top 6)</h3><canvas id="chartChannelLine" height="300"></canvas></div>
+    <div class="table-scroll"><table><thead><tr>
+      <th>월</th><th>Channel</th><th class="right">인스톨 수</th><th class="right">비중</th>
+    </tr></thead><tbody id="channelMonthlyBody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- SECTION 2: Channel Type -->
+<div class="section">
+  <div class="section-title"><div class="icon blue">&#x1F4E1;</div>채널 타입별 인스톨 현황</div>
+  <div class="tab-buttons" id="typeTabs">
+    <button class="tab-btn active" onclick="switchTab('type','overall')">전체 기간</button>
+    <button class="tab-btn" onclick="switchTab('type','monthly')">월별 추이</button>
+  </div>
+  <div class="tab-content active" id="type-overall">
+    <div class="chart-row">
+      <div class="chart-box"><h3>채널 타입별 비중</h3><canvas id="chartTypePie" height="260"></canvas></div>
+      <div class="chart-box"><h3>채널 타입별 인스톨 수</h3><canvas id="chartTypeBar" height="260"></canvas></div>
+    </div>
+    <div class="table-scroll"><table><thead><tr>
+      <th style="width:40px">#</th><th>Channel Type</th><th class="right">인스톨 수</th>
+      <th class="right">비중</th><th class="right">Unique Users</th>
+    </tr></thead><tbody id="typeOverallBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="type-monthly">
+    <div class="chart-box" style="margin-bottom:20px"><h3>채널 타입별 월간 추이</h3><canvas id="chartTypeLine" height="280"></canvas></div>
+    <div class="table-scroll"><table><thead><tr>
+      <th>월</th><th>Channel Type</th><th class="right">인스톨 수</th><th class="right">비중</th>
+    </tr></thead><tbody id="typeMonthlyBody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- SECTION 3: Campaign -->
+<div class="section">
+  <div class="section-title"><div class="icon green">&#x1F3AF;</div>캠페인별 인스톨 현황</div>
+  <div class="tab-buttons" id="campTabs">
+    <button class="tab-btn active" onclick="switchTab('camp','overall')">전체 기간</button>
+    <button class="tab-btn" onclick="switchTab('camp','monthly')">월별 추이</button>
+  </div>
+  <div class="tab-content active" id="camp-overall">
+    <div class="chart-row">
+      <div class="chart-box"><h3>캠페인별 인스톨 비중 (Top 10, Attributed Only)</h3><canvas id="chartCampPie" height="280"></canvas></div>
+      <div class="chart-box"><h3>캠페인별 인스톨 수 (Top 15)</h3><canvas id="chartCampBar" height="280"></canvas></div>
+    </div>
+    <div class="table-scroll" style="max-height:600px"><table><thead><tr>
+      <th style="width:40px">#</th><th>Campaign</th><th>Channel</th><th class="right">인스톨 수</th>
+      <th class="right">비중</th><th class="right" style="width:120px">바</th><th class="right">Unique Users</th>
+    </tr></thead><tbody id="campOverallBody"></tbody></table></div>
+  </div>
+  <div class="tab-content" id="camp-monthly">
+    <div class="chart-box" style="margin-bottom:20px"><h3>주요 캠페인 월간 인스톨 추이 (Top 5, unattributed 제외)</h3><canvas id="chartCampLine" height="300"></canvas></div>
+    <div class="table-scroll" style="max-height:600px"><table><thead><tr>
+      <th>월</th><th>Campaign</th><th>Channel</th><th class="right">인스톨 수</th>
+    </tr></thead><tbody id="campMonthlyBody"></tbody></table></div>
+  </div>
+</div>
+
+<div class="footer">
+  Generated from moduparking.airbridge.app_PP &middot; 2025-08 ~ 2026-01 &middot; Report created: 2026-02-09
+</div>
+</div>
+
+<script>
+const TOTAL = 1267809;
+const MONTHS = ['2025-08','2025-09','2025-10','2025-11','2025-12','2026-01'];
+
+const channelOverall = [
+  {ch:'unattributed',cnt:1151508,uu:39425},{ch:'owned',cnt:52893,uu:1045},
+  {ch:'$$default$$',cnt:28053,uu:270},{ch:'dev',cnt:14261,uu:251},
+  {ch:'naver.searchad',cnt:11228,uu:179},{ch:'viral',cnt:3640,uu:32},
+  {ch:'restricted',cnt:2635,uu:1},{ch:'naver_bsa',cnt:2250,uu:35},
+  {ch:'alliance',cnt:834,uu:6},{ch:'danggeun_market',cnt:113,uu:0},
+  {ch:'socar',cnt:112,uu:0},{ch:'public',cnt:84,uu:1},
+  {ch:'naver_sa',cnt:60,uu:5},{ch:'kakao',cnt:54,uu:0},
+  {ch:'crm_lms',cnt:51,uu:0},{ch:'offline',cnt:33,uu:2},
+];
+
+const channelMonthly = {
+  '2025-08':[{ch:'unattributed',cnt:228325},{ch:'owned',cnt:3467},{ch:'$$default$$',cnt:1550},{ch:'naver.searchad',cnt:1389},{ch:'dev',cnt:677},{ch:'viral',cnt:187},{ch:'alliance',cnt:97},{ch:'offline',cnt:3},{ch:'danggeun_market',cnt:1}],
+  '2025-09':[{ch:'unattributed',cnt:216533},{ch:'owned',cnt:9534},{ch:'$$default$$',cnt:6883},{ch:'dev',cnt:2995},{ch:'naver.searchad',cnt:2273},{ch:'viral',cnt:987},{ch:'alliance',cnt:316},{ch:'danggeun_market',cnt:112},{ch:'naver_bsa',cnt:95},{ch:'crm_lms',cnt:51},{ch:'offline',cnt:16},{ch:'public',cnt:10}],
+  '2025-10':[{ch:'unattributed',cnt:203842},{ch:'owned',cnt:10464},{ch:'$$default$$',cnt:5530},{ch:'dev',cnt:2869},{ch:'restricted',cnt:2585},{ch:'naver.searchad',cnt:2281},{ch:'viral',cnt:775},{ch:'naver_bsa',cnt:522},{ch:'alliance',cnt:222},{ch:'kakao',cnt:54},{ch:'public',cnt:41},{ch:'socar',cnt:6},{ch:'offline',cnt:1}],
+  '2025-11':[{ch:'unattributed',cnt:171744},{ch:'owned',cnt:8582},{ch:'$$default$$',cnt:5314},{ch:'dev',cnt:2719},{ch:'naver.searchad',cnt:1675},{ch:'viral',cnt:573},{ch:'naver_bsa',cnt:518},{ch:'socar',cnt:105},{ch:'alliance',cnt:91},{ch:'restricted',cnt:50},{ch:'public',cnt:21},{ch:'naver_sa',cnt:7},{ch:'offline',cnt:5}],
+  '2025-12':[{ch:'unattributed',cnt:179939},{ch:'owned',cnt:9102},{ch:'$$default$$',cnt:5615},{ch:'dev',cnt:2558},{ch:'naver.searchad',cnt:1822},{ch:'viral',cnt:712},{ch:'naver_bsa',cnt:595},{ch:'alliance',cnt:102},{ch:'naver_sa',cnt:26},{ch:'public',cnt:9},{ch:'offline',cnt:6},{ch:'socar',cnt:1}],
+  '2026-01':[{ch:'unattributed',cnt:151789},{ch:'owned',cnt:11813},{ch:'$$default$$',cnt:3169},{ch:'dev',cnt:2459},{ch:'naver.searchad',cnt:1801},{ch:'naver_bsa',cnt:520},{ch:'viral',cnt:410},{ch:'naver_sa',cnt:27},{ch:'alliance',cnt:6},{ch:'public',cnt:3},{ch:'offline',cnt:2}],
+};
+
+const typeOverall = [
+  {tp:'Unattributed',cnt:1151508,uu:39425},
+  {tp:'Custom Channel',cnt:102271,uu:1647},
+  {tp:'Integrated Channel',cnt:14030,uu:180},
+];
+
+const typeMonthly = {
+  '2025-08':[{tp:'Unattributed',cnt:228325},{tp:'Custom Channel',cnt:5981},{tp:'Integrated Channel',cnt:1390}],
+  '2025-09':[{tp:'Unattributed',cnt:216533},{tp:'Custom Channel',cnt:20887},{tp:'Integrated Channel',cnt:2385}],
+  '2025-10':[{tp:'Unattributed',cnt:203842},{tp:'Custom Channel',cnt:20430},{tp:'Integrated Channel',cnt:4920}],
+  '2025-11':[{tp:'Unattributed',cnt:171744},{tp:'Custom Channel',cnt:17935},{tp:'Integrated Channel',cnt:1725}],
+  '2025-12':[{tp:'Unattributed',cnt:179939},{tp:'Custom Channel',cnt:18726},{tp:'Integrated Channel',cnt:1822}],
+  '2026-01':[{tp:'Unattributed',cnt:151789},{tp:'Custom Channel',cnt:18409},{tp:'Integrated Channel',cnt:1801}],
+};
+
+const campOverall = [
+  {camp:'(none)',ch:'unattributed',cnt:1151508,uu:39425},
+  {camp:'parking_web_all_activation',ch:'owned',cnt:52660,uu:1045},
+  {camp:'(none)',ch:'$$default$$',cnt:28053,uu:270},
+  {camp:'(none)',ch:'dev',cnt:14261,uu:251},
+  {camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:5685,uu:80},
+  {camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:4378,uu:84},
+  {camp:'parking_naver_blog_all_activation',ch:'viral',cnt:3263,uu:31},
+  {camp:'(none)',ch:'restricted',cnt:2635,uu:1},
+  {camp:'Mobile_v.3.3',ch:'naver_bsa',cnt:2144,uu:35},
+  {camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:1006,uu:13},
+  {camp:'parking_samsungfire_all_promo',ch:'alliance',cnt:466,uu:2},
+  {camp:'parking_hyundaicard_all_activation',ch:'alliance',cnt:343,uu:4},
+  {camp:'parking_naver_blog_all_promo',ch:'viral',cnt:331,uu:0},
+  {camp:'parking_web_all_promo',ch:'owned',cnt:227,uu:0},
+  {camp:'A. 4. \uC77C\uBC18_\uAE30\uD0C0_mo',ch:'naver.searchad',cnt:131,uu:2},
+  {camp:'parking_danngn_traffic_all',ch:'danggeun_market',cnt:112,uu:0},
+  {camp:'parking_sharing_all_promo',ch:'socar',cnt:112,uu:0},
+  {camp:'Mobile_v.3.4',ch:'naver_bsa',cnt:106,uu:0},
+  {camp:'parking_qr_all_activation',ch:'public',cnt:84,uu:1},
+  {camp:'A. 5. \uC77C\uBC18_\uACF5\uD56D_mo',ch:'naver_sa',cnt:59,uu:5},
+  {camp:'parking_lms_all_activation',ch:'crm_lms',cnt:51,uu:0},
+  {camp:'parking_web_all_activation',ch:'viral',cnt:46,uu:1},
+  {camp:'moduparking_biz_all_signup_aos',ch:'kakao',cnt:43,uu:0},
+  {camp:'parking_gsmbiz_all_activation',ch:'alliance',cnt:25,uu:0},
+  {camp:'parking_qr_all_activation',ch:'offline',cnt:18,uu:1},
+  {camp:'(none)',ch:'naver.searchad',cnt:17,uu:0},
+  {camp:'parking_qr_all_promo',ch:'offline',cnt:15,uu:1},
+  {camp:'moduparking_biz_all_signup_ios',ch:'kakao',cnt:11,uu:0},
+  {camp:'A. 1. \uBE0C\uB79C\uB4DC_mo',ch:'naver.searchad',cnt:10,uu:0},
+  {camp:'parking_braze_inapp_all_activation',ch:'owned',cnt:5,uu:0},
+  {camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_pc',ch:'naver.searchad',cnt:1,uu:0},
+  {camp:'parking_kakaochannel_news_all_activation',ch:'owned',cnt:1,uu:0},
+  {camp:'test_campaign',ch:'danggeun_market',cnt:1,uu:0},
+  {camp:'A.5.\uC77C\uBC18_\uACF5\uD56D_mo',ch:'naver_sa',cnt:1,uu:0},
+];
+
+const campMonthly = [
+  {ym:'2025-08',camp:'(none)',ch:'unattributed',cnt:228325},
+  {ym:'2025-08',camp:'parking_web_all_activation',ch:'owned',cnt:3466},
+  {ym:'2025-08',camp:'(none)',ch:'$$default$$',cnt:1550},
+  {ym:'2025-08',camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:977},
+  {ym:'2025-08',camp:'(none)',ch:'dev',cnt:677},
+  {ym:'2025-08',camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:316},
+  {ym:'2025-08',camp:'parking_naver_blog_all_activation',ch:'viral',cnt:187},
+  {ym:'2025-08',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:86},
+  {ym:'2025-08',camp:'parking_hyundaicard_all_activation',ch:'alliance',cnt:59},
+  {ym:'2025-08',camp:'parking_samsungfire_all_promo',ch:'alliance',cnt:35},
+  {ym:'2025-09',camp:'(none)',ch:'unattributed',cnt:216533},
+  {ym:'2025-09',camp:'parking_web_all_activation',ch:'owned',cnt:9304},
+  {ym:'2025-09',camp:'(none)',ch:'$$default$$',cnt:6883},
+  {ym:'2025-09',camp:'(none)',ch:'dev',cnt:2995},
+  {ym:'2025-09',camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:1408},
+  {ym:'2025-09',camp:'parking_naver_blog_all_activation',ch:'viral',cnt:715},
+  {ym:'2025-09',camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:626},
+  {ym:'2025-09',camp:'parking_naver_blog_all_promo',ch:'viral',cnt:272},
+  {ym:'2025-09',camp:'parking_samsungfire_all_promo',ch:'alliance',cnt:240},
+  {ym:'2025-09',camp:'parking_web_all_promo',ch:'owned',cnt:227},
+  {ym:'2025-09',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:203},
+  {ym:'2025-09',camp:'parking_danngn_traffic_all',ch:'danggeun_market',cnt:112},
+  {ym:'2025-09',camp:'Mobile_v.3.3',ch:'naver_bsa',cnt:94},
+  {ym:'2025-10',camp:'(none)',ch:'unattributed',cnt:203842},
+  {ym:'2025-10',camp:'parking_web_all_activation',ch:'owned',cnt:10462},
+  {ym:'2025-10',camp:'(none)',ch:'$$default$$',cnt:5530},
+  {ym:'2025-10',camp:'(none)',ch:'dev',cnt:2869},
+  {ym:'2025-10',camp:'(none)',ch:'restricted',cnt:2585},
+  {ym:'2025-10',camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:1043},
+  {ym:'2025-10',camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:982},
+  {ym:'2025-10',camp:'parking_naver_blog_all_activation',ch:'viral',cnt:745},
+  {ym:'2025-10',camp:'Mobile_v.3.3',ch:'naver_bsa',cnt:417},
+  {ym:'2025-10',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:219},
+  {ym:'2025-10',camp:'parking_samsungfire_all_promo',ch:'alliance',cnt:148},
+  {ym:'2025-10',camp:'Mobile_v.3.4',ch:'naver_bsa',cnt:105},
+  {ym:'2025-11',camp:'(none)',ch:'unattributed',cnt:171744},
+  {ym:'2025-11',camp:'parking_web_all_activation',ch:'owned',cnt:8582},
+  {ym:'2025-11',camp:'(none)',ch:'$$default$$',cnt:5314},
+  {ym:'2025-11',camp:'(none)',ch:'dev',cnt:2719},
+  {ym:'2025-11',camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:758},
+  {ym:'2025-11',camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:736},
+  {ym:'2025-11',camp:'parking_naver_blog_all_activation',ch:'viral',cnt:548},
+  {ym:'2025-11',camp:'Mobile_v.3.3',ch:'naver_bsa',cnt:518},
+  {ym:'2025-11',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:153},
+  {ym:'2025-11',camp:'parking_sharing_all_promo',ch:'socar',cnt:105},
+  {ym:'2025-12',camp:'(none)',ch:'unattributed',cnt:179939},
+  {ym:'2025-12',camp:'parking_web_all_activation',ch:'owned',cnt:9102},
+  {ym:'2025-12',camp:'(none)',ch:'$$default$$',cnt:5615},
+  {ym:'2025-12',camp:'(none)',ch:'dev',cnt:2558},
+  {ym:'2025-12',camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:826},
+  {ym:'2025-12',camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:800},
+  {ym:'2025-12',camp:'parking_naver_blog_all_activation',ch:'viral',cnt:673},
+  {ym:'2025-12',camp:'Mobile_v.3.3',ch:'naver_bsa',cnt:595},
+  {ym:'2025-12',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:173},
+  {ym:'2025-12',camp:'parking_hyundaicard_all_activation',ch:'alliance',cnt:80},
+  {ym:'2026-01',camp:'(none)',ch:'unattributed',cnt:151789},
+  {ym:'2026-01',camp:'parking_web_all_activation',ch:'owned',cnt:11813},
+  {ym:'2026-01',camp:'(none)',ch:'$$default$$',cnt:3169},
+  {ym:'2026-01',camp:'(none)',ch:'dev',cnt:2459},
+  {ym:'2026-01',camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad',cnt:864},
+  {ym:'2026-01',camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad',cnt:737},
+  {ym:'2026-01',camp:'Mobile_v.3.3',ch:'naver_bsa',cnt:520},
+  {ym:'2026-01',camp:'parking_naver_blog_all_activation',ch:'viral',cnt:399},
+  {ym:'2026-01',camp:'A. 2. \uC77C\uBC18_\uC8FC\uCC28_mo',ch:'naver.searchad',cnt:175},
+];
+
+// ========== UTILS ==========
+function fmt(n) { return n.toLocaleString('ko-KR'); }
+function pct(n, total) { return (n/total*100).toFixed(1); }
+function rankClass(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':'normal'; }
+function pctBadge(p) {
+  const cls = p>=10?'pct-high':p>=1?'pct-mid':'pct-low';
+  return '<span class="pct-badge '+cls+'">'+p+'%</span>';
+}
+const COLORS = ['#818cf8','#34d399','#f472b6','#fbbf24','#60a5fa','#a78bfa',
+                '#fb923c','#22d3ee','#f87171','#4ade80','#c084fc','#e879f9',
+                '#38bdf8','#facc15','#2dd4bf','#fb7185'];
+
+function switchTab(section, tab) {
+  document.querySelectorAll('#'+section+'-overall, #'+section+'-monthly').forEach(function(el){el.classList.remove('active')});
+  document.getElementById(section+'-'+tab).classList.add('active');
+  var tabsContainer = {channel:'channelTabs',type:'typeTabs',camp:'campTabs'}[section];
+  document.querySelectorAll('#'+tabsContainer+' .tab-btn').forEach(function(btn,i){
+    btn.classList.toggle('active',(tab==='overall'&&i===0)||(tab==='monthly'&&i===1));
+  });
+}
+
+// ========== RENDER TABLES ==========
+(function(){
+  var html='', maxCnt=channelOverall[0].cnt;
+  channelOverall.forEach(function(r,i){
+    var p=pct(r.cnt,TOTAL), barW=(r.cnt/maxCnt*100).toFixed(1);
+    html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td>'
+      +'<td class="name">'+r.ch+'</td><td class="right">'+fmt(r.cnt)+'</td>'
+      +'<td class="right">'+pctBadge(p)+'</td>'
+      +'<td class="right data-bar-cell"><div class="data-bar" style="width:'+barW+'%;background:#818cf8"></div><span class="data-bar-text">'+fmt(r.cnt)+'</span></td>'
+      +'<td class="right">'+fmt(r.uu)+'</td></tr>';
+  });
+  var tc=channelOverall.reduce(function(s,r){return s+r.cnt},0);
+  var tu=channelOverall.reduce(function(s,r){return s+r.uu},0);
+  html+='<tr class="total-row"><td></td><td>TOTAL</td><td class="right">'+fmt(tc)+'</td><td class="right">100.0%</td><td class="right"></td><td class="right">'+fmt(tu)+'</td></tr>';
+  document.getElementById('channelOverallBody').innerHTML=html;
+})();
+
+(function(){
+  var html='';
+  MONTHS.forEach(function(ym){
+    var rows=channelMonthly[ym]||[], mt=rows.reduce(function(s,r){return s+r.cnt},0);
+    rows.forEach(function(r,i){
+      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.ch+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,mt))+'</td></tr>';
+    });
+    html+='<tr class="total-row"><td></td><td>\uC18C\uACC4</td><td class="right">'+fmt(mt)+'</td><td class="right">100.0%</td></tr>';
+  });
+  document.getElementById('channelMonthlyBody').innerHTML=html;
+})();
+
+(function(){
+  var html='';
+  typeOverall.forEach(function(r,i){
+    html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td><td class="name">'+r.tp+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,TOTAL))+'</td><td class="right">'+fmt(r.uu)+'</td></tr>';
+  });
+  var tc=typeOverall.reduce(function(s,r){return s+r.cnt},0);
+  var tu=typeOverall.reduce(function(s,r){return s+r.uu},0);
+  html+='<tr class="total-row"><td></td><td>TOTAL</td><td class="right">'+fmt(tc)+'</td><td class="right">100.0%</td><td class="right">'+fmt(tu)+'</td></tr>';
+  document.getElementById('typeOverallBody').innerHTML=html;
+})();
+
+(function(){
+  var html='';
+  MONTHS.forEach(function(ym){
+    var rows=typeMonthly[ym]||[], mt=rows.reduce(function(s,r){return s+r.cnt},0);
+    rows.forEach(function(r,i){
+      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.tp+'</td><td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(pct(r.cnt,mt))+'</td></tr>';
+    });
+    html+='<tr class="total-row"><td></td><td>\uC18C\uACC4</td><td class="right">'+fmt(mt)+'</td><td class="right">100.0%</td></tr>';
+  });
+  document.getElementById('typeMonthlyBody').innerHTML=html;
+})();
+
+(function(){
+  var html='', maxCnt=campOverall[0].cnt;
+  campOverall.forEach(function(r,i){
+    var p=pct(r.cnt,TOTAL), barW=(r.cnt/maxCnt*100).toFixed(1);
+    html+='<tr><td><span class="rank '+rankClass(i)+'">'+(i+1)+'</span></td>'
+      +'<td class="name">'+r.camp+'</td><td class="name">'+r.ch+'</td>'
+      +'<td class="right">'+fmt(r.cnt)+'</td><td class="right">'+pctBadge(p)+'</td>'
+      +'<td class="right data-bar-cell"><div class="data-bar" style="width:'+barW+'%;background:#34d399"></div><span class="data-bar-text">'+fmt(r.cnt)+'</span></td>'
+      +'<td class="right">'+fmt(r.uu)+'</td></tr>';
+  });
+  var tc=campOverall.reduce(function(s,r){return s+r.cnt},0);
+  var tu=campOverall.reduce(function(s,r){return s+r.uu},0);
+  html+='<tr class="total-row"><td></td><td>TOTAL</td><td></td><td class="right">'+fmt(tc)+'</td><td class="right">100.0%</td><td class="right"></td><td class="right">'+fmt(tu)+'</td></tr>';
+  document.getElementById('campOverallBody').innerHTML=html;
+})();
+
+(function(){
+  var html='';
+  MONTHS.forEach(function(ym){
+    var rows=campMonthly.filter(function(r){return r.ym===ym});
+    rows.forEach(function(r,i){
+      html+='<tr><td>'+(i===0?ym:'')+'</td><td class="name">'+r.camp+'</td><td class="name">'+r.ch+'</td><td class="right">'+fmt(r.cnt)+'</td></tr>';
+    });
+    var mt=rows.reduce(function(s,r){return s+r.cnt},0);
+    html+='<tr class="total-row"><td></td><td>\uC18C\uACC4</td><td></td><td class="right">'+fmt(mt)+'</td></tr>';
+  });
+  document.getElementById('campMonthlyBody').innerHTML=html;
+})();
+
+// ========== CHARTS ==========
+Chart.defaults.color='#9ca3af';
+Chart.defaults.borderColor='rgba(255,255,255,0.04)';
+Chart.defaults.font.family='Inter';
+
+new Chart(document.getElementById('chartChannelPie'),{
+  type:'doughnut',
+  data:{labels:channelOverall.filter(function(r){return r.ch!=='unattributed'}).map(function(r){return r.ch}),
+    datasets:[{data:channelOverall.filter(function(r){return r.ch!=='unattributed'}).map(function(r){return r.cnt}),backgroundColor:COLORS.slice(0,15),borderWidth:0}]},
+  options:{responsive:true,plugins:{legend:{position:'right',labels:{padding:8,font:{size:11},usePointStyle:true,pointStyleWidth:8}}}}
+});
+
+new Chart(document.getElementById('chartChannelBar'),{
+  type:'bar',
+  data:{labels:channelOverall.slice(0,10).map(function(r){return r.ch}),
+    datasets:[{data:channelOverall.slice(0,10).map(function(r){return r.cnt}),backgroundColor:COLORS.slice(0,10).map(function(c){return c+'aa'}),borderRadius:4,borderSkipped:false}]},
+  options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:function(v){return (v/1000)+'K'}}},y:{grid:{display:false}}}}
+});
+
+(function(){
+  var top6=['unattributed','owned','$$default$$','dev','naver.searchad','viral'];
+  var datasets=top6.map(function(ch,idx){return{
+    label:ch,data:MONTHS.map(function(ym){var r=(channelMonthly[ym]||[]).find(function(x){return x.ch===ch});return r?r.cnt:0}),
+    borderColor:COLORS[idx],backgroundColor:COLORS[idx]+'33',tension:0.3,pointRadius:4,pointHoverRadius:6,borderWidth:2}});
+  new Chart(document.getElementById('chartChannelLine'),{type:'line',data:{labels:MONTHS,datasets:datasets},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{usePointStyle:true,pointStyleWidth:8,font:{size:11}}}},
+      scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:function(v){return(v/1000)+'K'}}},x:{grid:{display:false}}}}});
+})();
+
+new Chart(document.getElementById('chartTypePie'),{type:'doughnut',
+  data:{labels:typeOverall.map(function(r){return r.tp}),datasets:[{data:typeOverall.map(function(r){return r.cnt}),backgroundColor:['#6b7280','#818cf8','#34d399'],borderWidth:0}]},
+  options:{responsive:true,plugins:{legend:{position:'right',labels:{padding:10,font:{size:12},usePointStyle:true,pointStyleWidth:8}}}}});
+
+new Chart(document.getElementById('chartTypeBar'),{type:'bar',
+  data:{labels:typeOverall.map(function(r){return r.tp}),datasets:[{data:typeOverall.map(function(r){return r.cnt}),backgroundColor:['#6b7280aa','#818cf8aa','#34d399aa'],borderRadius:6,borderSkipped:false}]},
+  options:{responsive:true,plugins:{legend:{display:false}},
+    scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:function(v){return(v/1000)+'K'}}},x:{grid:{display:false}}}}});
+
+(function(){
+  var types=['Unattributed','Custom Channel','Integrated Channel'],colors=['#6b7280','#818cf8','#34d399'];
+  var datasets=types.map(function(tp,idx){return{label:tp,
+    data:MONTHS.map(function(ym){var r=(typeMonthly[ym]||[]).find(function(x){return x.tp===tp});return r?r.cnt:0}),
+    borderColor:colors[idx],backgroundColor:colors[idx]+'33',tension:0.3,pointRadius:4,borderWidth:2}});
+  new Chart(document.getElementById('chartTypeLine'),{type:'line',data:{labels:MONTHS,datasets:datasets},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{usePointStyle:true,pointStyleWidth:8,font:{size:11}}}},
+      scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:function(v){return(v/1000)+'K'}}},x:{grid:{display:false}}}}});
+})();
+
+(function(){
+  var attributed=campOverall.filter(function(r){return r.ch!=='unattributed'&&r.ch!=='$$default$$'&&r.ch!=='dev'&&r.ch!=='restricted'});
+  var top10=attributed.slice(0,10);
+  new Chart(document.getElementById('chartCampPie'),{type:'doughnut',
+    data:{labels:top10.map(function(r){return r.camp.length>25?r.camp.substring(0,25)+'\u2026':r.camp}),
+      datasets:[{data:top10.map(function(r){return r.cnt}),backgroundColor:COLORS.slice(0,10),borderWidth:0}]},
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{padding:6,font:{size:10},usePointStyle:true,pointStyleWidth:8}}}}});
+})();
+
+(function(){
+  var filtered=campOverall.filter(function(r){return r.ch!=='unattributed'});
+  var top15=filtered.slice(0,15);
+  new Chart(document.getElementById('chartCampBar'),{type:'bar',
+    data:{labels:top15.map(function(r){var l=r.camp.length>20?r.camp.substring(0,20)+'\u2026':r.camp;return l+' / '+r.ch}),
+      datasets:[{data:top15.map(function(r){return r.cnt}),backgroundColor:COLORS.slice(0,15).map(function(c){return c+'aa'}),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:function(v){return(v/1000)+'K'}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});
+})();
+
+(function(){
+  var topCamps=[
+    {camp:'parking_web_all_activation',ch:'owned'},
+    {camp:'0_\uBE0C\uB79C\uB4DC\uAC80\uC0C9_\uBAA8\uB450\uC758\uC8FC\uCC28\uC7A5',ch:'naver.searchad'},
+    {camp:'A. 3. \uC77C\uBC18_\uC9C0\uC5ED_mo',ch:'naver.searchad'},
+    {camp:'parking_naver_blog_all_activation',ch:'viral'},
+    {camp:'Mobile_v.3.3',ch:'naver_bsa'}];
+  var datasets=topCamps.map(function(tc,idx){return{
+    label:tc.camp.length>25?tc.camp.substring(0,25)+'\u2026':tc.camp,
+    data:MONTHS.map(function(ym){var r=campMonthly.find(function(x){return x.ym===ym&&x.camp===tc.camp&&x.ch===tc.ch});return r?r.cnt:0}),
+    borderColor:COLORS[idx],backgroundColor:COLORS[idx]+'33',tension:0.3,pointRadius:4,borderWidth:2}});
+  new Chart(document.getElementById('chartCampLine'),{type:'line',data:{labels:MONTHS,datasets:datasets},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{usePointStyle:true,pointStyleWidth:8,font:{size:10}}}},
+      scales:{y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{callback:function(v){return(v/1000)+'K'}}},x:{grid:{display:false}}}}});
+})();
+</script>
+</body>
+</html>
