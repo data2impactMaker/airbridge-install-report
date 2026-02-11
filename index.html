@@ -117,21 +117,17 @@ tbody tr.total-row td {
   text-align: center; color: #4b5563; font-size: 12px;
   padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 20px;
 }
-.tip {
-  position: relative; cursor: help;
-  border-bottom: 1px dotted rgba(165,180,252,0.4);
-}
-.tip .tip-box {
-  display: none; position: absolute; left: 0; bottom: calc(100% + 8px);
+.tip { cursor: help; border-bottom: 1px dotted rgba(165,180,252,0.4); }
+#globalTip {
+  display: none; position: fixed; z-index: 99999;
   background: #1e1e2e; border: 1px solid rgba(99,102,241,0.3);
-  border-radius: 8px; padding: 10px 14px; width: 280px; z-index: 100;
+  border-radius: 8px; padding: 10px 14px; width: 280px;
   font-size: 12px; font-weight: 400; color: #d1d5db; line-height: 1.5;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5); pointer-events: none;
 }
-.tip .tip-box .tip-title {
+#globalTip .tip-title {
   font-weight: 600; color: #a5b4fc; margin-bottom: 4px; font-size: 12px;
 }
-.tip:hover .tip-box { display: block; }
 @media (max-width: 900px) {
   .kpi-row { grid-template-columns: repeat(2,1fr); }
   .chart-row { grid-template-columns: 1fr; }
@@ -139,6 +135,7 @@ tbody tr.total-row td {
 </style>
 </head>
 <body>
+<div id="globalTip"><div class="tip-title" id="tipTitle"></div><div id="tipDesc"></div></div>
 <div class="container">
 
 <div class="header">
@@ -418,8 +415,29 @@ var chDesc = {
 function chTip(name) {
   var d = chDesc[name];
   if (!d) return name;
-  return '<span class="tip">'+name+'<span class="tip-box"><div class="tip-title">'+name+'</div>'+d+'</span></span>';
+  return '<span class="tip" data-tip-name="'+name+'">'+name+'</span>';
 }
+
+(function(){
+  var gt=document.getElementById('globalTip'),tt=document.getElementById('tipTitle'),td=document.getElementById('tipDesc');
+  document.addEventListener('mouseover',function(e){
+    var el=e.target.closest('.tip');
+    if(!el)return;
+    var name=el.getAttribute('data-tip-name'),d=chDesc[name];
+    if(!d)return;
+    tt.textContent=name; td.textContent=d;
+    gt.style.display='block';
+    var r=el.getBoundingClientRect();
+    var left=r.left, top=r.top-gt.offsetHeight-8;
+    if(top<4){top=r.bottom+8;}
+    if(left+280>window.innerWidth){left=window.innerWidth-290;}
+    gt.style.left=left+'px'; gt.style.top=top+'px';
+  });
+  document.addEventListener('mouseout',function(e){
+    var el=e.target.closest('.tip');
+    if(el){gt.style.display='none';}
+  });
+})();
 
 // ========== UTILS ==========
 function fmt(n) { return n.toLocaleString('ko-KR'); }
